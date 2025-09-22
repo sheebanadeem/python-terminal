@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PyTerminal</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+<div class="container">
+    <h1>PyTerminal</h1>
+    <div id="terminal"></div>
+    <div class="input-area">
+        <span class="cursor">&gt;</span>
+        <input type="text" id="command-input" placeholder="Type a command..." autofocus>
+        <button onclick="sendCommand()">Run</button>
+    </div>
+</div>
+
+<script>
+const terminal = document.getElementById('terminal');
+const input = document.getElementById('command-input');
+
+let history = [];
+let historyIndex = -1;
+
+input.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+        sendCommand();
+    } else if (e.key === 'ArrowUp') {
+        if (history.length && historyIndex < history.length - 1) {
+            historyIndex++;
+            input.value = history[history.length - 1 - historyIndex];
+        }
+    } else if (e.key === 'ArrowDown') {
+        if (historyIndex > 0) {
+            historyIndex--;
+            input.value = history[history.length - 1 - historyIndex];
+        } else {
+            historyIndex = -1;
+            input.value = '';
+        }
+    }
+});
+
+function sendCommand() {
+    const command = input.value.trim();
+    if (!command) return;
+
+    history.push(command);
+    historyIndex = -1;
+
+    terminal.innerHTML += `<div class="user-cmd">&gt; ${command}</div>`;
+    fetch('/run', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({command})
+    })
+    .then(res => res.json())
+    .then(data => {
+        terminal.innerHTML += `<div class="output">${data.output.replace(/\n/g,'<br>')}</div>`;
+        terminal.scrollTop = terminal.scrollHeight;
+    });
+
+    input.value = '';
+}
+</script>
+</body>
+</html>
